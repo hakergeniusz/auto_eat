@@ -35,7 +35,7 @@ fn auto_eat_tick(game: &mut crate::game::Game<'_>) {
         state::reset();
         return;
     };
-    let food = p.health.food.food;
+    let food = p.health.food.food as f32;
 
     match state::get() {
         state::Mode::Idle => {
