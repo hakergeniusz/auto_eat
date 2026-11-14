@@ -1,0 +1,12 @@
+[package]
+name = "horizon-auto-eat"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Eats for you when hunger drops, so the drain never wins. A Horizon native mod."
+publish = false
+
+# The runtime doubles as the mod's library (its tests) and the module the
+# bundle injects into the game; the other files compile only inside it.
+[lib]
+path = "mixins/auto_eat/runtime.rs"
