@@ -1,7 +1,7 @@
 id = "auto_eat"
 name = "Auto Eat"
-version = "0.2.0"
-description = "Eats for you when hunger drops: picks food from the hotbar, selects its slot a tick ahead, presses use through the game's own input mapping and holds it until the bite lands."
+version = "0.3.0"
+description = "Eats for you when hunger drops: picks food from the hotbar, selects its slot a tick ahead, presses use through the game's own input mapping and holds it until the bite lands. Keep-full mode pins the bar at the top on any server."
 authors = ["hakergeniusz"]
 license = "MIT"
 api = "0.2"

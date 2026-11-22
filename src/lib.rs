@@ -6,7 +6,10 @@
 //! client holds can freeze what another machine counts down. What a client
 //! can do is answer it — eating is a real action the server honors wherever
 //! it runs, so the mod picks food from the hotbar and holds use until the
-//! bite lands, and the drain never wins.
+//! bite lands, and the drain never wins. Keep-full mode is the any-server
+//! nohunger on that same truth: the bar is pinned at the top by eating the
+//! moment it moves. The freeze only a host can have is iron_stomach's; this
+//! is the guest's answer.
 //!
 //! The hold is the whole trick: a bite takes about thirty ticks, and a
 //! released button cancels it. The press is the game's own mapping seam for
@@ -25,9 +28,20 @@ use core::cell::RefCell;
 
 use mod_api::{Hooks, RegistrationContext, Registrar};
 
+/// The mod's id in the game's settings store.
+pub const ID: &str = "auto_eat";
+
+/// The keep-full toggle's key in the settings store.
+pub const KEEP_FULL: &str = "keep_full";
+
 /// Eat once the hunger level is at or below this: the regen band (18 and
 /// up) is kept fed, and the bar never walks into the starving half.
 pub const EAT_AT: f32 = 15.0;
+
+/// A full hunger bar. Keep-full mode eats the moment the bar is anywhere
+/// under this — the closest a client gets to no-hunger on a server that
+/// counts its own food.
+pub const FULL: f32 = 20.0;
 
 /// Ticks the use is held before the mod gives up on the bite: the plain
 /// foods' thirty-two, plus margin for the tick the press lands.
@@ -62,11 +76,21 @@ pub const FOODS: [&str; 24] = [
     "minecraft:enchanted_golden_apple",
 ];
 
-/// Whether this hunger level asks for food now: at or below the threshold.
-/// A level already being fed (the caller knows a bite is in flight) never
-/// asks twice.
-pub fn should_eat(food: f32) -> bool {
-    food <= EAT_AT
+/// Whether this hunger level asks for food now: at or below the threshold —
+/// or, in keep-full mode, any point under full. A level already being fed
+/// (the caller knows a bite is in flight) never asks twice.
+pub fn should_eat(food: f32, keep_full: bool) -> bool {
+    if keep_full {
+        food < FULL
+    } else {
+        food <= EAT_AT
+    }
+}
+
+/// The keep-full toggle, read fresh every tick: the game's settings writes
+/// never call back into a mod's cache, so there is no cache to go stale.
+pub fn keep_full(get: impl FnOnce(&str) -> Option<String>) -> bool {
+    get(KEEP_FULL).is_some_and(|on| on.trim() == "true")
 }
 
 /// Whether the item is food the mod will spend.
@@ -135,9 +159,17 @@ pub struct Mod;
 
 #[mod_api::horizon_mod]
 impl Hooks for Mod {
-    /// The mod registers nothing: the meal has no toggle — installing it is
-    /// asking for it, and the hunger bar decides the rest.
-    fn register(&self, _: &mut dyn Registrar, _: &RegistrationContext) {}
+    /// One toggle: keep-full mode, the any-server nohunger. The plain meal
+    /// still has no switch — installing it is asking for it, and the hunger
+    /// bar decides the rest.
+    fn register(&self, registrar: &mut dyn Registrar, _: &RegistrationContext) {
+        use mod_api::SettingSpec;
+        let _ = registrar.register_setting(SettingSpec::toggle(
+            KEEP_FULL,
+            "auto_eat.setting.keep_full",
+            false,
+        ));
+    }
 
     /// Implemented as a no-op so the game always calls the
     /// `native_client_tick_pre` dispatch the tick mixin lives in: the game
@@ -152,15 +184,30 @@ mod tests {
 
     #[test]
     fn hunger_at_the_threshold_asks_for_food() {
-        assert!(should_eat(15.0));
-        assert!(should_eat(0.0));
-        assert!(should_eat(EAT_AT));
+        assert!(should_eat(15.0, false));
+        assert!(should_eat(0.0, false));
+        assert!(should_eat(EAT_AT, false));
     }
 
     #[test]
     fn fed_hunger_does_not() {
-        assert!(!should_eat(15.01));
-        assert!(!should_eat(20.0));
+        assert!(!should_eat(15.01, false));
+        assert!(!should_eat(20.0, false));
+    }
+
+    #[test]
+    fn keep_full_asks_at_any_point_under_full() {
+        assert!(should_eat(19.0, true));
+        assert!(should_eat(0.0, true));
+        assert!(!should_eat(FULL, true));
+        assert!(!should_eat(20.0, true));
+    }
+
+    #[test]
+    fn the_toggle_defaults_off_and_reads_true() {
+        assert!(!keep_full(|_| None), "an absent toggle is off");
+        assert!(keep_full(|k| (k == KEEP_FULL).then(|| "true".into())));
+        assert!(!keep_full(|k| (k == KEEP_FULL).then(|| "false".into())));
     }
 
     #[test]

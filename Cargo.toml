@@ -1,6 +1,6 @@
 [package]
 name = "auto_eat"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 license = "MIT"
 description = "Eats for you when hunger drops, so the drain never wins. A Horizon native mod."

@@ -1,1 +1,3 @@
-{}
+{
+  "auto_eat.setting.keep_full": "Keep hunger full — eats the moment the bar moves, on any server"
+}

@@ -40,10 +40,11 @@ fn auto_eat_tick(game: &mut crate::game::Game<'_>) {
         return;
     };
     let food = p.health.food.food as f32;
+    let keep_full = auto_eat::keep_full(|key| game.stored_setting(auto_eat::ID, key));
 
     match auto_eat::get() {
         auto_eat::Mode::Idle => {
-            if !auto_eat::should_eat(food) || game.right || game.spectator() {
+            if !auto_eat::should_eat(food, keep_full) || game.right || game.spectator() {
                 return;
             }
             // The hotbar only, the mod's list, best first.
