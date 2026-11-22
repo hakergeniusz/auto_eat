@@ -1,0 +1,29 @@
+id = "auto_eat"
+name = "Auto Eat"
+version = "0.2.0"
+description = "Eats for you when hunger drops: picks food from the hotbar, selects its slot a tick ahead, presses use through the game's own input mapping and holds it until the bite lands."
+authors = ["hakergeniusz"]
+license = "MIT"
+api = "0.2"
+side = "client"
+capabilities = ["registries"]
+
+[native]
+game = "26.3"
+horizon = "f037744a79f9982c47876f49c5a3067279f88706"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
+
+# Every tick, on the window's game only: the meal's state machine — choose
+# the food slot, select it a tick ahead (the carried-slot packet must lead
+# the use on the wire), press use through the mod's own mapping seam and
+# hold it until the stack's count drops, then hand the hotbar back. The
+# client_tick_pre hook itself is implemented in src/lib.rs so this dispatch
+# always runs.
+[[native.mixin]]
+id = "tick"
+target = "horizon_client::game::native_hooks::client_tick_pre::Game<'_>::native_client_tick_pre"
+kind = "HEAD"
+helper = "src/mixins/tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
